@@ -1,6 +1,7 @@
+import functools
+
 f = open("input.txt").readlines()
 sequence = [l.strip() for l in f]
-print sequence
 
 convert = {
     "U": [0,1], "D": [0,-1], "R": [1,0], "L": [-1,0]
@@ -26,6 +27,6 @@ def next_step(prev, cur):
 start = [1,1]
 for step in sequence:
     steps = map(lambda x: convert[x], [s for s in step])
-    start = reduce(next_step, steps, start)
-    print keypad[start[y]][start[x]]
+    start = functools.reduce(next_step, steps, start)
+    print(keypad[start[y]][start[x]])
 
