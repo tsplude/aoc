@@ -96,7 +96,9 @@ func part_two(input_file string) string {
 		}
 	}
 
-	fmt.Println("mkxke:", find_weight(weight_map, neighbor_map, "mkxke"))
+	for _, n := range neighbor_map["mkxke"] {
+		fmt.Println(n, find_weight(weight_map, neighbor_map, n))
+	}
 
 	return "not yet"
 }
