@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var DATA_FILE string = os.Args[1]
+
 func part_one(input_file string) string {
 	file, _ := os.Open(input_file)
 	scanner := bufio.NewScanner(file)
@@ -44,19 +46,62 @@ func part_one(input_file string) string {
 		}
 	}
 
-	return lhs.Difference(rhs).String()
+	diff_str := lhs.Difference(rhs).String()
+	if strings.Count(diff_str, ",") > 0 {
+		panic("Input not valid! Could not find root node.")
+	}
+	return diff_str[strings.Index(diff_str, "{")+1 : strings.Index(diff_str, "}")]
 }
 
-func find_weight(w_map map[string]int, n_map map[string][]string, id string) int {
+func find_weight(id string, w_map map[string]int, n_map map[string][]string) int {
 	if _, ok := n_map[id]; !ok {
 		return w_map[id]
 	}
 
 	w_sum := w_map[id]
 	for _, n := range n_map[id] {
-		w_sum += find_weight(w_map, n_map, n)
+		w_sum += find_weight(n, w_map, n_map)
 	}
 	return w_sum
+}
+
+func count(a []int, b int) int {
+	c := 0
+	for _, e := range a {
+		if e == b {
+			c += 1
+		}
+	}
+	return c
+}
+
+func investigate(id string, w_map map[string]int, c_map map[string][]string) string {
+
+	child_weights := []int{}
+	for _, c := range c_map[id] {
+		cw := find_weight(c, w_map, c_map)
+		fmt.Println(id, c, cw)
+		child_weights = append(child_weights, find_weight(c, w_map, c_map))
+	}
+
+	fmt.Println(id, c_map[id])
+	fmt.Println(id, child_weights)
+
+	found_different := false
+	pos_to_investigate := 0
+	for pos, cw := range child_weights {
+		if count(child_weights, cw) == 1 {
+			pos_to_investigate = pos
+			found_different = true
+			break
+		}
+	}
+
+	if !found_different {
+		return id
+	} else {
+		return investigate(c_map[id][pos_to_investigate], w_map, c_map)
+	}
 }
 
 func part_two(input_file string) string {
@@ -96,14 +141,11 @@ func part_two(input_file string) string {
 		}
 	}
 
-	for _, n := range neighbor_map["mkxke"] {
-		fmt.Println(n, find_weight(weight_map, neighbor_map, n))
-	}
-
-	return "not yet"
+	root := part_one(DATA_FILE)
+	return investigate(root, weight_map, neighbor_map)
 }
 
 func main() {
-	fmt.Println("Part 1:", part_one("input.txt"))
-	fmt.Println("Part 2:", part_two("input.txt"))
+	fmt.Println("Part 1:", part_one(DATA_FILE))
+	fmt.Println("Part 2:", part_two(DATA_FILE))
 }
