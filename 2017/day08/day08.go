@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -18,43 +20,82 @@ func split_instruction(instruction string) []string {
 	return parts
 }
 
-func part_one(data_file string) bool {
+func condition_passes(reg, op string, rhs int, reg_to_balance map[string]int) bool {
+	result := false
+	switch op {
+	case "<":
+		result = reg_to_balance[reg] < rhs
+	case "<=":
+		result = reg_to_balance[reg] <= rhs
+	case ">":
+		result = reg_to_balance[reg] > rhs
+	case ">=":
+		result = reg_to_balance[reg] >= rhs
+	case "==":
+		result = reg_to_balance[reg] == rhs
+	case "!=":
+		result = reg_to_balance[reg] != rhs
+	default:
+		panic(fmt.Sprintf("Unsupported relational operator: %v", op))
+	}
+	return result
+}
+
+func find_max(reg_to_balance map[string]int) int {
+	max := math.Inf(-1)
+	for _, val := range reg_to_balance {
+		if float64(val) > max {
+			max = float64(val)
+		}
+	}
+	return int(max)
+}
+
+func solve(data_file string) (int, int) {
 	file, _ := os.Open(data_file)
 	scanner := bufio.NewScanner(file)
 
-	instruction_list := []string{}              // raw instruction string
-	reg_to_balance := make(map[string]int)      // register's account balance
-	reg_to_val := make(map[string]string)       // register's inc/dec amount
-	reg_to_condition := make(map[string]string) // register's condition
+	reg_to_balance := make(map[string]int) // register's account balance
 
+	part_two := 0
 	for scanner.Scan() {
-		line := scanner.Text()
+		instruction := strings.Split(scanner.Text(), " ")
 
-		instruction_list = append(instruction_list, line)
+		reg_name := instruction[0]
+		instruction_val, _ := strconv.Atoi(instruction[2])
+		if instruction[1] == "dec" {
+			instruction_val *= -1
+		}
+		condition_reg := instruction[4]
+		condition_op := instruction[5]
+		condition_rhs, _ := strconv.Atoi(instruction[6])
 
-		parts := split_instruction(line)
-		reg_name := parts[0]
-		reg_val := fmt.Sprintf("%v:%v", parts[1], parts[2])
-		reg_condition := fmt.Sprintf("%v:%v:%v", parts[4], parts[5], parts[6])
+		if _, ok := reg_to_balance[reg_name]; !ok {
+			reg_to_balance[reg_name] = 0
+		}
+		if _, ok := reg_to_balance[condition_reg]; !ok {
+			reg_to_balance[condition_reg] = 0
+		}
 
-		reg_to_balance[reg_name] = 0
-		reg_to_val[reg_name] = reg_val
-		reg_to_condition[reg_name] = reg_condition
+		if condition_passes(condition_reg, condition_op, condition_rhs, reg_to_balance) {
+			reg_to_balance[reg_name] += instruction_val
+		}
 
+		current_max := find_max(reg_to_balance)
+		if current_max > part_two {
+			part_two = current_max
+		}
 	}
 
-	fmt.Println(reg_to_balance)
-	fmt.Println(reg_to_val)
-	fmt.Println(reg_to_condition)
+	part_one := find_max(reg_to_balance)
 
-	return false
-}
-
-func part_two(data_file string) bool {
-	return false
+	return part_one, part_two
 }
 
 func main() {
-	fmt.Println("Part 1:", part_one(DATA_FILE))
-	fmt.Println("Part 2:", part_two(DATA_FILE))
+
+	part_one, part_two := solve(DATA_FILE)
+
+	fmt.Println("Part 1:", part_one)
+	fmt.Println("Part 2:", part_two)
 }
