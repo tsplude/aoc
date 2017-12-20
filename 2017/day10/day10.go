@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,7 +11,7 @@ import (
 
 var DATA_FILE string = os.Args[1]
 
-func knot_hash_round(elements []int, sequence []string, pos, skip int) ([]int, int, int) {
+func knot_hash_round_string(elements []int, sequence []string, pos, skip int) ([]int, int, int) {
 	n := len(elements)
 	for _, len_str := range sequence {
 		len, _ := strconv.Atoi(len_str)
@@ -57,12 +58,40 @@ func part_one(data_file string) int {
 		elements[i] = i
 	}
 
-	elements, _, _ = knot_hash_round(elements, sequence, 0, 0)
+	elements, _, _ = knot_hash_round_string(elements, sequence, 0, 0)
 
 	return elements[0] * elements[1]
 }
 
-func part_two(data_file string) bool {
+func knot_hash_round_rune(elements []int, sequence []rune, pos, skip int) ([]int, int, int) {
+	n := len(elements)
+	for _, len := range sequence {
+
+		// copy current state
+		elem_copy := make([]int, n)
+		copy(elem_copy, elements)
+
+		last_pos := (pos + int(len) - 1) % n
+		for i := len; i > 0; i-- {
+			elem_copy[pos] = elements[last_pos]
+
+			// adjust reference points
+			if last_pos == 0 {
+				last_pos = n - 1
+			} else {
+				last_pos--
+			}
+			pos = (pos + 1) % n
+		}
+
+		elements = elem_copy
+		pos = (pos + skip) % n
+		skip += 1
+	}
+	return elements, pos, skip
+}
+
+func part_two(data_file string) string {
 	file, _ := os.Open(data_file)
 	defer file.Close()
 	reader := bufio.NewReader(file)
@@ -91,9 +120,29 @@ func part_two(data_file string) bool {
 	ascii_codes = append(ascii_codes, 47)
 	ascii_codes = append(ascii_codes, 23)
 
-	fmt.Println("codes:", ascii_codes)
+	pos, skip := 0, 0
+	for i := 64; i > 0; i-- {
+		elements, pos, skip = knot_hash_round_rune(elements, ascii_codes, pos, skip)
+	}
 
-	return false
+	dense_hash := []int{}
+	for i := 0; i < 256; i += 16 {
+		section := elements[i : i+16]
+		xor := section[0]
+		for _, elem := range section[1:] {
+			xor ^= elem
+		}
+		dense_hash = append(dense_hash, xor)
+	}
+
+	fmt.Println("Dense hash:", dense_hash)
+
+	var buffer bytes.Buffer
+	for _, val := range dense_hash {
+		buffer.WriteString(fmt.Sprintf("%02x", val))
+	}
+
+	return buffer.String()
 }
 
 func main() {
